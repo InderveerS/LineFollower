@@ -1,0 +1,6 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "microMouse")(type "KiCad")(uri "${KIPRJMOD}/microMouse.kicad_sym")(options "")(descr ""))
+  (lib (name "ICM-42688-P")(type "KiCad")(uri "${KIPRJMOD}/lib/ICM-42688-P.kicad_sym")(options "")(descr ""))
+  (lib (name "LSM6DSV")(type "KiCad")(uri "${KIPRJMOD}/lib/LSM6DSV.kicad_sym")(options "")(descr ""))
+)
