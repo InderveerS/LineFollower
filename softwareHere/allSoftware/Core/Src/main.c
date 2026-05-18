@@ -52,11 +52,13 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
+TIM_HandleTypeDef htim6;
 
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-
+volatile uint32_t encoder_captured = 0;
+volatile float rpm = 0.0f;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,6 +70,7 @@ static void MX_TIM1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
+static void MX_TIM6_Init(void);
 static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -113,10 +116,11 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM5_Init();
+  MX_TIM6_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-//  TIM1->ARR = 8399;
-//  TIM1->EGR = TIM_EGR_UG;
+  TIM1->ARR = 8399;   // force it regardless of what init did
+  TIM1->EGR = TIM_EGR_UG;  // update event to latch the new ARR
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
@@ -125,6 +129,7 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 
+  /* Initialize logging system */
   logging_init();
 
   /* USER CODE END 2 */
@@ -144,6 +149,8 @@ int main(void)
 	    int32_t delta = cnt - last_cnt;
 	    last_cnt = cnt;
 	    last_tick = HAL_GetTick();
+
+	    rpm = (float)(delta < 0 ? -delta : delta) / 408.0f * 600.0f;
 	}
 
 	uint8_t rx_char;
@@ -556,6 +563,37 @@ static void MX_TIM5_Init(void)
 }
 
 /**
+  * @brief TIM6 Initialization Function (for logging timer)
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 8399;  /* Prescaler to get 10kHz from 84MHz */
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 99;  /* 100 ticks = 10ms at 10kHz */
+  htim6.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -675,6 +713,11 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+/**
+  * @brief  Timer interrupt callback (fires when a timer overflows/period elapses)
+  * @param  htim: pointer to a TIM_HandleTypeDef structure
+  * @retval None
+  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM6)
@@ -714,7 +757,7 @@ void Error_Handler(void)
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
   * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
+  * @param  line: pointer to the line number
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)

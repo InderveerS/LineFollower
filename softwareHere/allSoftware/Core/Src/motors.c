@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 /*
  * motors.c
  *
@@ -27,26 +25,6 @@ void spinBrake(void) {
 	htim1.Instance->CCR4 = MAX_PWM;
 }
 
-void coastRightMotor(void) {
-	htim1.Instance->CCR1 = 0;
-	htim1.Instance->CCR2 = 0;
-}
-
-void coastLeftMotor(void) {
-	htim1.Instance->CCR3 = 0;
-	htim1.Instance->CCR4 = 0;
-}
-
-void brakeRightMotor(void) {
-	htim1.Instance->CCR1 = MAX_PWM;
-	htim1.Instance->CCR2 = MAX_PWM;
-}
-
-void brakeLeftMotor(void) {
-	htim1.Instance->CCR3 = MAX_PWM;
-	htim1.Instance->CCR4 = MAX_PWM;
-}
-
 /* @param: dutyPercent - percentage of PWM duty cycle to run at (-100 -> 100). Sets it to 0
  * if out of range
  * @returns: void
@@ -54,10 +32,8 @@ void brakeLeftMotor(void) {
  * and negative for backwards
 */
 void spinPercent(int dutyPercent) {
-	if (dutyPercent > 100)
-		dutyPercent = 100;
-	else if (dutyPercent < -100)
-		dutyPercent = -100;
+	if (dutyPercent > 100 || dutyPercent < -100)
+		dutyPercent = 0;
 
 	if (dutyPercent > 0) {
 		uint32_t ccr = (MAX_PWM * dutyPercent) / 100;
@@ -77,49 +53,8 @@ void spinPercent(int dutyPercent) {
 		spinCoast();
 	}
 }
-
-void spinRightMotor(int dutyPercent) {
-	if (dutyPercent > 100)
-		dutyPercent = 100;
-	else if (dutyPercent < -100)
-		dutyPercent = -100;
-
-	if(dutyPercent > 0) {
-		uint32_t ccr = (MAX_PWM * dutyPercent) / 100;
-		htim1.Instance->CCR1 = ccr;
-		htim1.Instance->CCR2 = 0;
-	} else if (dutyPercent < 0) {
-		uint32_t ccr = (MAX_PWM * -dutyPercent) / 100;
-		htim1.Instance->CCR1 = 0;
-		htim1.Instance->CCR2 = ccr;
-	} else {
-		coastRightMotor();
-	}
-}
-
-void spinLeftMotor(int dutyPercent) {
-	if (dutyPercent > 100)
-		dutyPercent = 100;
-	else if (dutyPercent < -100)
-		dutyPercent = -100;
-
-	if(dutyPercent > 0) {
-		uint32_t ccr = (MAX_PWM * dutyPercent) / 100;
-		htim1.Instance->CCR3 = ccr;
-		htim1.Instance->CCR4 = 0;
-	} else if (dutyPercent < 0) {
-		uint32_t ccr = (MAX_PWM * -dutyPercent) / 100;
-		htim1.Instance->CCR3 = 0;
-		htim1.Instance->CCR4 = ccr;
-	} else {
-		coastLeftMotor();
-	}
-}
-
-
 /* c1 -> left1
  * c2 -> left2
  * c3 -> right2
  * c4 -> right1
 */
->>>>>>> Stashed changes

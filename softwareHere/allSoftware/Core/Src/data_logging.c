@@ -1,112 +1,73 @@
 #include "data_logging.h"
+#include "stm32f4xx_hal.h"
+#include <string.h>
+#include <stdio.h>
 
-
-// global variables
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
+extern TIM_HandleTypeDef htim6;
+extern UART_HandleTypeDef huart3;
 
 volatile uint32_t log_write_ptr = LOG_BASE_ADDR;
 volatile uint32_t total_samples = 0;
 volatile uint8_t logging_active = 0;
-volatile uint8_t time_ms = 0;
+volatile uint32_t log_time_ms = 0;
 
 
-// functions
-
-int flash_write_word(uint32_t value) {
-	if (log_write_ptr >= LOG_MAX_ADDR) {
-		return -1;
-	}
-
-	HAL_Flash_Unlock();
-
-	HAL_StatusTypeDef status = HAL_FLASH_Program(
-			FLASH_TYPEPROGRAM_WORD,
-	        log_write_ptr,
-	        value
-	    );
-
-	    HAL_FLASH_Lock();
-
-	    if (status == HAL_OK) {
-	    	log_write_ptr+=4;
-	    	return 0;
-	    } else {
-	    	return -1;
-	    }
-}
-
-void scan_flash_for_end () {
-	 LogRecord_t *ptr = (LogRecord_t *)LOG_BASE_ADDR;
-
-	    while ((uint32_t)ptr < LOG_MAX_ADDR)
-	    {
-	        if (ptr->dummy == 0xFFFFFFFF) // if record is empty
-	        {
-	            log_write_ptr = (uint32_t)ptr;
-	            return;
-	        }
-	        ptr++;
-	    }
-	    log_write_ptr = LOG_MAX_ADDR;
-}
-
-
-void logging_init() {
-	total_samples = 0;
-	logging_active = 0;
-	time_ms = 0;
-
-	scan_flash_for_end (); //
-
-	 char msg[100];
-	    int len = snprintf(msg, sizeof(msg),
-	        "Logging initialized. Write pointer: 0x%lx, Samples: %lu\r\n",
-	        log_write_ptr, total_samples);
-
-	  HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
-	// 1. the UART peripheral to use 2. the data so send
-	 // 3. the size of that data 4. the max time to wait
-
-}
-
-
-void logging_start() {
-	    if (logging_erase() != 0)
-	    {
-	        char msg[100];
-	        int len = snprintf(msg, sizeof(msg), "Failed to start logging\r\n");
-	        HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
-	        return;
-	    }
-
-
-	    log_time_ms = 0;
-	    total_samples = 0;
-
-	    logging_active = 1;
-
-
-	    HAL_TIM_Base_Start_IT(&htim6);
-
-	    char msg[100];
-	    int len = snprintf(msg, sizeof(msg),
-	        "Logging started. Will run for 30 seconds at 100 Hz\r\n");
-	    HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
-}
-
-
-void logging_stop(void)
+int flash_write_word(uint32_t value)
 {
+    if (log_write_ptr >= LOG_MAX_ADDR) {
+        return -1;
+    }
 
-    HAL_TIM_Base_Stop_IT(&htim6);
+    HAL_FLASH_Unlock();
+
+    HAL_StatusTypeDef status = HAL_FLASH_Program(
+        FLASH_TYPEPROGRAM_WORD,
+        log_write_ptr,
+        value
+    );
+
+    HAL_FLASH_Lock();
+
+    if (status == HAL_OK) {
+        log_write_ptr += 4;
+        return 0;
+    } else {
+        return -1;
+    }
+}
 
 
+void scan_flash_for_end(void)
+{
+    LogRecord_t *ptr = (LogRecord_t *)LOG_BASE_ADDR;
+
+    while ((uint32_t)ptr < LOG_MAX_ADDR)
+    {
+        if (ptr->dummy == 0xFFFFFFFF)
+        {
+            log_write_ptr = (uint32_t)ptr;
+            return;
+        }
+        ptr++;
+    }
+    log_write_ptr = LOG_MAX_ADDR;
+}
+
+
+void logging_init(void)
+{
+    total_samples = 0;
     logging_active = 0;
+    log_time_ms = 0;
 
-    char msg[150];
+    scan_flash_for_end();
+
+    char msg[100];
     int len = snprintf(msg, sizeof(msg),
-        "Logging stopped. Total samples: %lu, Time: %lu ms\r\n"
-        "Ready to dump data. Send 'D' command to download.\r\n",
-        total_samples, log_time_ms);
+        "Logging initialized. Write pointer: 0x%lx, Samples: %lu\r\n",
+        log_write_ptr, total_samples);
     HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
 }
 
@@ -121,23 +82,17 @@ int logging_erase(void)
 
     uint32_t SectorError = 0;
 
-
     HAL_FLASH_Unlock();
-
 
     HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&EraseInitStruct, &SectorError);
 
-
     HAL_FLASH_Lock();
-
 
     if (status == HAL_OK)
     {
-
         log_write_ptr = LOG_BASE_ADDR;
         total_samples = 0;
         log_time_ms = 0;
-
 
         char msg[100];
         int len = snprintf(msg, sizeof(msg), "Flash erased successfully\r\n");
@@ -147,13 +102,50 @@ int logging_erase(void)
     }
     else
     {
-
         char msg[100];
         int len = snprintf(msg, sizeof(msg), "Flash erase failed\r\n");
         HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
 
         return -1;
     }
+}
+
+
+void logging_start(void)
+{
+    if (logging_erase() != 0)
+    {
+        char msg[100];
+        int len = snprintf(msg, sizeof(msg), "Failed to start logging\r\n");
+        HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
+        return;
+    }
+
+    log_time_ms = 0;
+    total_samples = 0;
+    logging_active = 1;
+
+    HAL_TIM_Base_Start_IT(&htim6);
+
+    char msg[100];
+    int len = snprintf(msg, sizeof(msg),
+        "Logging started. Will run for 30 seconds at 100 Hz\r\n");
+    HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
+}
+
+
+void logging_stop(void)
+{
+    HAL_TIM_Base_Stop_IT(&htim6);
+
+    logging_active = 0;
+
+    char msg[150];
+    int len = snprintf(msg, sizeof(msg),
+        "Logging stopped. Total samples: %lu, Time: %lu ms\r\n"
+        "Ready to dump data. Send 'D' command to download.\r\n",
+        total_samples, log_time_ms);
+    HAL_UART_Transmit(&huart3, (uint8_t *)msg, len, 100);
 }
 
 
@@ -166,12 +158,10 @@ int logging_record(void)
     uint32_t left_count = __HAL_TIM_GET_COUNTER(&htim3);
     uint32_t right_count = __HAL_TIM_GET_COUNTER(&htim4);
 
-
     LogRecord_t record;
     record.left_encoder_count = left_count;
     record.right_encoder_count = right_count;
-    record.dummy = 0;  // not empty
-
+    record.dummy = 0;
 
     if (flash_write_word(record.left_encoder_count) != 0)
         return -1;
@@ -182,15 +172,14 @@ int logging_record(void)
     if (flash_write_word(record.dummy) != 0)
         return -1;
 
-
     total_samples++;
 
     return 0;
 }
 
 
-void logging_dump_csv(void) {
-
+void logging_dump_csv(void)
+{
     const char header[] = "sample_num,left_count,right_count\r\n";
     HAL_UART_Transmit(&huart3, (uint8_t *)header, strlen(header), 100);
 
@@ -223,5 +212,3 @@ void logging_dump_csv(void) {
         "Dump complete. Total records: %lu\r\n", num_records);
     HAL_UART_Transmit(&huart3, (uint8_t *)summary, len, 100);
 }
-
-
