@@ -1,0 +1,8 @@
+../Core/Src/data_logging.c:13:5:flash_write_word	3
+../Core/Src/data_logging.c:32:6:scan_flash_for_end	3
+../Core/Src/data_logging.c:46:6:logging_init	1
+../Core/Src/data_logging.c:58:5:logging_erase	2
+../Core/Src/data_logging.c:87:6:logging_start	2
+../Core/Src/data_logging.c:105:6:logging_stop	1
+../Core/Src/data_logging.c:116:5:logging_record	5
+../Core/Src/data_logging.c:136:6:logging_dump_csv	3
