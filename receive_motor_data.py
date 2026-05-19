@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # On Mac: /dev/ttyUSB0 or /dev/ttyACM0
 # On Windows: COM3, COM4, etc.
 # ============================================================================
-SERIAL_PORT = 'COM3'
+SERIAL_PORT = 'COM10'
 BAUD_RATE = 115200
 TIMEOUT = 10
 

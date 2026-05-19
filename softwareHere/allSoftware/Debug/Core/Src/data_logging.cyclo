@@ -5,4 +5,4 @@
 ../Core/Src/data_logging.c:87:6:logging_start	2
 ../Core/Src/data_logging.c:105:6:logging_stop	1
 ../Core/Src/data_logging.c:116:5:logging_record	5
-../Core/Src/data_logging.c:136:6:logging_dump_csv	3
+../Core/Src/data_logging.c:139:6:logging_dump_csv	3

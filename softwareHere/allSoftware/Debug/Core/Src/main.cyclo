@@ -7,7 +7,7 @@
 ../Core/Src/main.c:357:13:MX_TIM4_Init	3
 ../Core/Src/main.c:398:13:MX_TIM5_Init	6
 ../Core/Src/main.c:449:13:MX_TIM6_Init	2
-../Core/Src/main.c:473:13:MX_USART3_UART_Init	2
-../Core/Src/main.c:499:13:MX_GPIO_Init	1
-../Core/Src/main.c:556:6:HAL_TIM_PeriodElapsedCallback	4
-../Core/Src/main.c:576:6:Error_Handler	1
+../Core/Src/main.c:478:13:MX_USART3_UART_Init	2
+../Core/Src/main.c:504:13:MX_GPIO_Init	1
+../Core/Src/main.c:561:6:HAL_TIM_PeriodElapsedCallback	4
+../Core/Src/main.c:584:6:Error_Handler	1

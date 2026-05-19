@@ -199,5 +199,8 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /* USER CODE BEGIN 1 */
-
+void TIM6_DAC_IRQHandler(void)
+{
+    HAL_TIM_IRQHandler(&htim6);
+}
 /* USER CODE END 1 */

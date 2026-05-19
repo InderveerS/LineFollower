@@ -118,6 +118,9 @@ int logging_record(void)
    if (!logging_active) {
        return -1;
    }
+
+   total_samples++;
+
    uint32_t left_count = __HAL_TIM_GET_COUNTER(&htim3);
    uint32_t right_count = __HAL_TIM_GET_COUNTER(&htim4);
    LogRecord_t record;
@@ -130,7 +133,7 @@ int logging_record(void)
        return -1;
    if (flash_write_word(record.dummy) != 0)
        return -1;
-   total_samples++;
+
    return 0;
 }
 void logging_dump_csv(void)
