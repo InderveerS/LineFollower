@@ -26,3 +26,8 @@ build/
 # KiCad
 .history/
 *.kicad_pcb-bak
+*.lck
+*-backups/
+
+# STM32CubeIDE workspace settings
+.settings/
