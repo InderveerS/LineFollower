@@ -27,9 +27,9 @@ typedef struct {
     float prev_deriv;
 } PIDController;
 
-void  PID_Init  (PIDController *pid, float kp, float ki, float kd,
+void  initPID  (PIDController *pid, float kp, float ki, float kd,
                  float out_min, float out_max, float lpf_alpha);
-void  PID_Reset (PIDController *pid);
-float PID_Update(PIDController *pid, float setpoint, float measurement, float dt);
+void  resetPID (PIDController *pid);
+float updatePID(PIDController *pid, float setpoint, float measurement, float dt);
 
 #endif /* INC_PID_H_ */

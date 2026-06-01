@@ -61,6 +61,7 @@ static void MX_USART3_UART_Init(void);
 /* USER CODE END PFP */
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+volatile uint16_t adcRaw;
 /* USER CODE END 0 */
 /**
  * @brief  The application entry point.
@@ -90,8 +91,8 @@ int main(void)
  MX_TIM6_Init();
  MX_USART3_UART_Init();
  /* USER CODE BEGIN 2 */
- TIM1->ARR = 8399;
- TIM1->EGR = TIM_EGR_UG;
+// TIM1->ARR = 8399;
+// TIM1->EGR = TIM_EGR_UG;
  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
@@ -100,12 +101,16 @@ int main(void)
  HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
  HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
  logging_init();
- spinPercent(70);
+ // spinPercent(70);
  /* USER CODE END 2 */
  /* Infinite loop */
  /* USER CODE BEGIN WHILE */
  while (1)
  {
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	adcRaw = HAL_ADC_GetValue(&hadc1);
    uint8_t rx_char;
    if (HAL_UART_Receive(&huart3, &rx_char, 1, 0) == HAL_OK)
    {

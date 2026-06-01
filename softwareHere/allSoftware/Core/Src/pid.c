@@ -8,7 +8,7 @@
 
 #include "pid.h"
 
-void PID_Init(PIDController *pid, float kp, float ki, float kd,
+void initPID(PIDController *pid, float kp, float ki, float kd,
               float out_min, float out_max, float lpf_alpha) {
     pid->kp        = kp;
     pid->ki        = ki;
@@ -21,7 +21,7 @@ void PID_Init(PIDController *pid, float kp, float ki, float kd,
     pid->prev_deriv = 0.0f;
 }
 
-void PID_Reset(PIDController *pid) {
+void resetPID(PIDController *pid) {
     pid->integral   = 0.0f;
     pid->prev_meas  = 0.0f;
     pid->prev_deriv = 0.0f;
@@ -35,7 +35,7 @@ static float clamp(float val, float min, float max) {
     return val;
 }
 
-float PID_Update(PIDController *pid, float setpoint, float measurement, float dt) {
+float updatePID(PIDController *pid, float setpoint, float measurement, float dt) {
     float error = setpoint - measurement;
 
     // Proportional

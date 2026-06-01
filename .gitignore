@@ -22,3 +22,7 @@ build/
 *.elf
 *.bin
 *.hex
+
+# KiCad
+.history/
+*.kicad_pcb-bak
