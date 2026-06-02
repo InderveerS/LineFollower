@@ -8,6 +8,8 @@
 #include "control.h"
 #include "pid.h"
 #include "motors.h"
+#include "sensors.h"
+#include "timing.h"
 #include <math.h>
 
 // Right motor PID coefficients
@@ -24,7 +26,6 @@
 #define MOTOR_MAX 100
 #define MOTOR_MIN -100
 #define M_ALPHA 0.5f
-#define dtM 0.0001f
 
 // Steer PID coefficients
 #define s_Kp 0.0f
@@ -35,7 +36,6 @@
 #define STEER_MAX_LEFT 16.8f
 #define STEER_MAX_RIGHT -16.8f
 #define S_ALPHA 0.5f
-#define dtS 0.001f
 
 // Characteristics of the robot
 #define WHEELBASE 0.048f
@@ -57,17 +57,20 @@ void controllerInit(void) {
 
 // outer loop --> uses IR sensors to output
 void updateSteerControl(void) {
-	// TODO: add sensors
-	float error = 0.0f;
-
-	omega = updatePID(&steerPID, 0.0f, error, dtS);
+	omega = updatePID(&steerPID, 0.0f, getLineError(), getDTS());
 }
 
 void updateMotors(void) {
 	// Inverse kinematics --> find exact needed speed for turn
 	uint16_t leftTargetVel = baseVel - omega * (WHEELBASE/2.0f);
+	uint16_t rightTargetVel = baseVel + omega * (WHEELBASE/2.0f);
 
-	// TODO: add currentVel once sensors file is done
-	float dutySet = updatePID(&leftMotorPID, (float) leftTargetVel, currentVel, dtM);
-	spinLeftMotor((int32_t) roundf(dutySet));
+	float leftCurrentVel = getLeftVel();
+	float rightCurrentVel = getRightVel();
+
+	float leftDutySet = updatePID(&leftMotorPID, (float) leftTargetVel, leftCurrentVel, getDTM());
+	float rightDutySet = updatePID(&rightMotorPID, (float) rightTargetVel, rightCurrentVel, getDTM());
+
+	spinLeftMotor((int32_t) roundf(leftDutySet));
+	spinRightMotor((int32_t) roundf(rightDutySet));
 }

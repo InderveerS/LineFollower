@@ -28,8 +28,6 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-extern TIM_HandleTypeDef htim6;
-
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
