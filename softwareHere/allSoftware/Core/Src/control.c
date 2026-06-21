@@ -11,6 +11,7 @@
 #include "sensors.h"
 #include "timing.h"
 #include <math.h>
+#include <stdint.h>
 
 // Right motor PID coefficients
 #define RM_Kp 0.0f
@@ -40,6 +41,9 @@
 // Characteristics of the robot
 #define WHEELBASE 0.048f
 
+// Min Percent for robot to move (linearize curve)
+#define PERCENT_MIN 10
+
 // Global outer loop variables
 volatile int16_t omega = 0;
 volatile uint16_t baseVel = 400;
@@ -61,7 +65,7 @@ void updateSteerControl(void) {
 }
 
 void updateMotors(void) {
-	// Inverse kinematics --> find exact needed speed for turn
+	// Find exact needed speed for turn
 	uint16_t leftTargetVel = baseVel - omega * (WHEELBASE/2.0f);
 	uint16_t rightTargetVel = baseVel + omega * (WHEELBASE/2.0f);
 
@@ -71,6 +75,6 @@ void updateMotors(void) {
 	float leftDutySet = updatePID(&leftMotorPID, (float) leftTargetVel, leftCurrentVel, getDTM());
 	float rightDutySet = updatePID(&rightMotorPID, (float) rightTargetVel, rightCurrentVel, getDTM());
 
-	spinLeftMotor((int32_t) roundf(leftDutySet));
-	spinRightMotor((int32_t) roundf(rightDutySet));
+	spinLeftMotor((int32_t) roundf(leftDutySet) + PERCENT_MIN);
+	spinRightMotor((int32_t) roundf(rightDutySet) + PERCENT_MIN);
 }
