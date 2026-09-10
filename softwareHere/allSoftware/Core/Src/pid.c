@@ -41,9 +41,6 @@ float updatePID(PIDController *pid, float setpoint, float measurement, float dt)
     // Proportional
     float p = pid->kp * error;
 
-    // Integral
-    float i = pid->ki * pid->integral;
-
     // Derivative on measurement (avoids derivative kick on setpoint change)
     // IIR low-pass filter applied to the derivative term
     float rawDerivative = -(measurement - pid->prev_meas) / dt;
@@ -52,11 +49,17 @@ float updatePID(PIDController *pid, float setpoint, float measurement, float dt)
     pid->prev_meas  = measurement;
     d = pid->kd * d;
 
-    float output = p + i + d;
+    // Anti windup, only block integration that pushes further into saturation
+    float trial = pid->integral + error * dt;
+    float trialOutput = p + pid->ki * trial + d;
 
-    // Anti windup for integral
-    if(output < pid->out_max && output > pid->out_min)
-        pid->integral += error * dt;
+    int saturated = (trialOutput > pid->out_max) || (trialOutput < pid->out_min);
+    int drivingDeeper = (trialOutput * error) > 0.0f;
+
+    if (!(saturated && drivingDeeper))
+        pid->integral = trial;
+
+    float output = p + pid->ki * pid->integral + d;
 
     return clamp(output, pid->out_min, pid->out_max);
 }

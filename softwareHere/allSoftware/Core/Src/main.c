@@ -24,6 +24,7 @@
 #include "motors.h"
 #include "data_logging.h"
 #include "control.h"
+#include "bench.h"
 #include "sensors.h"
 #include <stdio.h>
 #include <string.h>
@@ -57,6 +58,13 @@ TIM_HandleTypeDef htim6;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+
+//volatile uint16_t farLeftIR = 0;
+//volatile uint16_t leftIR = 0;
+//volatile uint16_t middleIR = 0;
+//volatile uint16_t rightIR = 0;
+//volatile uint16_t farRightIR = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -123,38 +131,64 @@ int main(void)
  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
  HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
  HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
- logging_init();
+ // logging_init();
  controllerInit();
  irBuffInit();
- // spinPercent(70);
+ HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+ HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_SET);
+ HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET);
+ HAL_GPIO_WritePin(GPIOH, GPIO_PIN_0, GPIO_PIN_SET);
+ HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, GPIO_PIN_SET);
+ HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
  while (1)
  {
-	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-   uint8_t rx_char;
-   if (HAL_UART_Receive(&huart3, &rx_char, 1, 0) == HAL_OK)
-   {
-     switch (rx_char)
-     {
-       case 'S':
-       case 's':
-         logging_start();
-         break;
-       case 'D':
-       case 'd':
-         logging_dump_csv();
-         break;
-       case 'E':
-       case 'e':
-         logging_erase();
-         break;
-       default:
-         break;
-     }
-   }
+
+//	 farLeftIR = getRawIR(0);
+//	 leftIR = getRawIR(1);
+//	 middleIR = getRawIR(2);
+//	 rightIR = getRawIR(3);
+//	 farRightIR = getRawIR(4);
+
+//	 for(int i = 0; i < 100; i++) {
+//		 spinPercent(i);
+//		 HAL_Delay(50);
+//	 }
+//	 for(int i = 100; i > -100; i--) {
+//		 spinPercent(i);
+//		 HAL_Delay(50);
+//	 }
+//	 for(int i = -100; i < 0; i++) {
+//		 spinPercent(i);
+//		 HAL_Delay(50);
+//	 }
+//
+//
+//   uint8_t rx_char;
+//   if (HAL_UART_Receive(&huart3, &rx_char, 1, 0) == HAL_OK)
+//   {
+//     switch (rx_char)
+//     {
+//       case 'S':
+//       case 's':
+//         logging_start();
+//         break;
+//       case 'D':
+//       case 'd':
+//         logging_dump_csv();
+//         break;
+//       case 'E':
+//       case 'e':
+//         logging_erase();
+//         break;
+//       default:
+//         break;
+//     }
+//   }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -580,7 +614,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 83;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 999;
+  htim6.Init.Period = 4999;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -729,23 +763,22 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 /**
- * @brief  Timer interrupt callback - fires every 10ms when TIM6 overflows
+ * @brief  Timer interrupt callback - fires when TIM6 overflows
  * @param  htim: pointer to a TIM_HandleTypeDef structure
  * @retval None
  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-   if (htim->Instance == TIM6)
-   {
-       if (logging_active)
-       {
-           logging_record();
-           log_time_ms += 10;
-           if (log_time_ms >= 30000)
-           {
-               logging_stop();
-           }
-       }
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+   if (htim->Instance != TIM6) return;
+
+   benchTick();
+
+   if (robotMode == MODE_RUN) controlTick();
+
+   if (logging_active) {
+       logging_record();
+       log_time_ms += 5;
+
+       if (log_time_ms >= 30000) logging_stop();
    }
 }
 

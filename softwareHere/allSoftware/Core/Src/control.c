@@ -13,50 +13,62 @@
 #include <math.h>
 #include <stdint.h>
 
-// Right motor PID coefficients
-#define RM_Kp 0.0f
-#define RM_Ki 0.0f
-#define RM_Kd 0.0f
+// Motor PID coefficients, shared by both wheels
+volatile float M_Kp = 58.0f;
+volatile float M_Ki = 300.0f;
+volatile float M_Kd = 0.0f;
 
-// Left motor PID coefficients
-#define LM_Kp 0.0f
-#define LM_Ki 0.0f
-#define LM_Kd 0.0f
+// maximum PWM outputs (less than 100 because of ff)
+#define MOTOR_MAX 30
+#define MOTOR_MIN -30
+#define M_ALPHA 0.0f
 
-// maximum PWM outputs
-#define MOTOR_MAX 100
-#define MOTOR_MIN -100
-#define M_ALPHA 0.5f
+#define FF_SLOPE 116.78f
+#define FF_OFFSET 4.35f
+
+// for testing PI controller response (set 0.7), 1.0 for normal use
+volatile float ffScale = 1.0f;
+
+volatile float lastLeftVel = 0.0f;
+volatile float lastRightVel = 0.0f;
+volatile float lastLeftDuty = 0.0f;
+volatile float lastRightDuty = 0.0f;
 
 // Steer PID coefficients
-#define s_Kp 0.0f
-#define s_Ki 0.0f
-#define s_Kd 0.0f
-
-// Steer PID maximum/minimum (in angular velocity of robot (w))
-#define STEER_MAX_LEFT 16.8f
-#define STEER_MAX_RIGHT -16.8f
-#define S_ALPHA 0.5f
+volatile float s_Kp = 5.5f;
+volatile float s_Ki = 0.0f;
+volatile float s_Kd = 0.0f;
 
 // Characteristics of the robot
-#define WHEELBASE 0.048f
+const float WHEELBASE = 0.048f;
 
 // Min Percent for robot to move (linearize curve)
-#define PERCENT_MIN 10
+// #define PERCENT_MIN 10
 
 // Global outer loop variables
-volatile int16_t omega = 0;
-volatile uint16_t baseVel = 400;
+volatile float omega = 0.0f;
+const float baseVel = 0.5f;
+const float vMax = 0.8f;
+
+// Steer PID maximum/minimum (in angular velocity of robot (w))
+const float STEER_MAX_LEFT = (vMax - baseVel) / (WHEELBASE/2);
+const float STEER_MAX_RIGHT = -(vMax - baseVel) / (WHEELBASE/2);
+#define S_ALPHA 0.2f
+
 
 // PID Controllers
 static PIDController rightMotorPID;
 static PIDController leftMotorPID;
 static PIDController steerPID;
 
-void controllerInit(void) {
-	initPID(&rightMotorPID, RM_Kp, RM_Ki, RM_Kd, MOTOR_MIN, MOTOR_MAX, M_ALPHA);
-	initPID(&leftMotorPID, LM_Kp, LM_Ki, LM_Kd, MOTOR_MIN, MOTOR_MAX, M_ALPHA);
+void controlReset(void) {
+	initPID(&rightMotorPID, M_Kp, M_Ki, M_Kd, MOTOR_MIN, MOTOR_MAX, M_ALPHA);
+	initPID(&leftMotorPID, M_Kp, M_Ki, M_Kd, MOTOR_MIN, MOTOR_MAX, M_ALPHA);
 	initPID(&steerPID, s_Kp, s_Ki, s_Kd, STEER_MAX_RIGHT, STEER_MAX_LEFT, S_ALPHA);
+}
+
+void controllerInit(void) {
+	controlReset();
 }
 
 // outer loop --> uses IR sensors to output
@@ -64,17 +76,38 @@ void updateSteerControl(void) {
 	omega = updatePID(&steerPID, 0.0f, getLineError(), getDTS());
 }
 
-void updateMotors(void) {
-	// Find exact needed speed for turn
-	uint16_t leftTargetVel = baseVel - omega * (WHEELBASE/2.0f);
-	uint16_t rightTargetVel = baseVel + omega * (WHEELBASE/2.0f);
+static float feedforward(float v) {
+	if (v > 0.0f)
+		return ffScale * (FF_SLOPE * v + FF_OFFSET);
+	if (v < 0.0f)
+		return ffScale * (FF_SLOPE * v - FF_OFFSET);
+	return 0.0f;
+}
 
-	float leftCurrentVel = getLeftVel();
-	float rightCurrentVel = getRightVel();
+void sampleVelocities(void) {
+	lastLeftVel = getLeftVel();
+	lastRightVel = getRightVel();
+}
 
-	float leftDutySet = updatePID(&leftMotorPID, (float) leftTargetVel, leftCurrentVel, getDTM());
-	float rightDutySet = updatePID(&rightMotorPID, (float) rightTargetVel, rightCurrentVel, getDTM());
+void updateMotors(float leftTarget, float rightTarget) {
+	sampleVelocities();
 
-	spinLeftMotor((int32_t) roundf(leftDutySet) + PERCENT_MIN);
-	spinRightMotor((int32_t) roundf(rightDutySet) + PERCENT_MIN);
+	lastLeftDuty = feedforward(leftTarget)
+			+ updatePID(&leftMotorPID, leftTarget, lastLeftVel, getDTM());
+	lastRightDuty = feedforward(rightTarget)
+			+ updatePID(&rightMotorPID, rightTarget, lastRightVel, getDTM());
+
+	spinLeftMotor(lastLeftDuty);
+	spinRightMotor(lastRightDuty);
+}
+
+void controlTick(void) {
+	static uint32_t tick = 0;
+	tick++;
+
+	if (tick % 4 == 0)
+		updateSteerControl();
+
+	updateMotors(baseVel - omega * (WHEELBASE/2.0f),
+			baseVel + omega * (WHEELBASE/2.0f));
 }

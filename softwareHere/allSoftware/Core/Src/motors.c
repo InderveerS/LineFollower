@@ -9,7 +9,7 @@
 
 extern TIM_HandleTypeDef htim1;
 
-#define MAX_PWM 8400
+#define MAX_PWM (htim1.Instance->ARR + 1)
 
 void spinCoast(void) {
 	htim1.Instance->CCR1 = 0;
@@ -25,22 +25,22 @@ void spinBrake(void) {
 	htim1.Instance->CCR4 = MAX_PWM;
 }
 
-void coastRightMotor(void) {
+void coastLeftMotor(void) {
 	htim1.Instance->CCR1 = 0;
 	htim1.Instance->CCR2 = 0;
 }
 
-void coastLeftMotor(void) {
+void coastRightMotor(void) {
 	htim1.Instance->CCR3 = 0;
 	htim1.Instance->CCR4 = 0;
 }
 
-void brakeRightMotor(void) {
+void brakeLeftMotor(void) {
 	htim1.Instance->CCR1 = MAX_PWM;
 	htim1.Instance->CCR2 = MAX_PWM;
 }
 
-void brakeLeftMotor(void) {
+void brakeRightMotor(void) {
 	htim1.Instance->CCR3 = MAX_PWM;
 	htim1.Instance->CCR4 = MAX_PWM;
 }
@@ -59,39 +59,20 @@ void spinPercent(int dutyPercent) {
 
 	if (dutyPercent > 0) {
 		uint32_t ccr = (MAX_PWM * dutyPercent) / 100;
-		htim1.Instance->CCR1 = ccr;
-		htim1.Instance->CCR2 = 0;
-		htim1.Instance->CCR3 = ccr;
-		htim1.Instance->CCR4 = 0;
+		htim1.Instance->CCR1 = MAX_PWM;
+		htim1.Instance->CCR2 = MAX_PWM - ccr;
+		htim1.Instance->CCR3 = MAX_PWM;
+		htim1.Instance->CCR4 = MAX_PWM - ccr;
 	}
 	else if (dutyPercent < 0) {
 		uint32_t ccr = (MAX_PWM * -dutyPercent) / 100;
-		htim1.Instance->CCR1 = 0;
-		htim1.Instance->CCR2 = ccr;
-		htim1.Instance->CCR3 = 0;
-		htim1.Instance->CCR4 = ccr;
+		htim1.Instance->CCR1 = MAX_PWM - ccr;
+		htim1.Instance->CCR2 = MAX_PWM;
+		htim1.Instance->CCR3 = MAX_PWM - ccr;
+		htim1.Instance->CCR4 = MAX_PWM;
 	}
 	else {
 		spinCoast();
-	}
-}
-
-void spinRightMotor(int dutyPercent) {
-	if (dutyPercent > 100)
-		dutyPercent = 100;
-	else if (dutyPercent < -100)
-		dutyPercent = -100;
-
-	if(dutyPercent > 0) {
-		uint32_t ccr = (MAX_PWM * dutyPercent) / 100;
-		htim1.Instance->CCR1 = ccr;
-		htim1.Instance->CCR2 = 0;
-	} else if (dutyPercent < 0) {
-		uint32_t ccr = (MAX_PWM * -dutyPercent) / 100;
-		htim1.Instance->CCR1 = 0;
-		htim1.Instance->CCR2 = ccr;
-	} else {
-		coastRightMotor();
 	}
 }
 
@@ -101,16 +82,35 @@ void spinLeftMotor(int dutyPercent) {
 	else if (dutyPercent < -100)
 		dutyPercent = -100;
 
-	if(dutyPercent > 0) {
+	if (dutyPercent > 0) {
 		uint32_t ccr = (MAX_PWM * dutyPercent) / 100;
-		htim1.Instance->CCR3 = ccr;
-		htim1.Instance->CCR4 = 0;
+		htim1.Instance->CCR1 = MAX_PWM;
+		htim1.Instance->CCR2 = MAX_PWM - ccr;
 	} else if (dutyPercent < 0) {
 		uint32_t ccr = (MAX_PWM * -dutyPercent) / 100;
-		htim1.Instance->CCR3 = 0;
-		htim1.Instance->CCR4 = ccr;
+		htim1.Instance->CCR1 = MAX_PWM - ccr;
+		htim1.Instance->CCR2 = MAX_PWM;
 	} else {
 		coastLeftMotor();
+	}
+}
+
+void spinRightMotor(int dutyPercent) {
+	if (dutyPercent > 100)
+		dutyPercent = 100;
+	else if (dutyPercent < -100)
+		dutyPercent = -100;
+
+	if (dutyPercent > 0) {
+		uint32_t ccr = (MAX_PWM * dutyPercent) / 100;
+		htim1.Instance->CCR3 = MAX_PWM;
+		htim1.Instance->CCR4 = MAX_PWM - ccr;
+	} else if (dutyPercent < 0) {
+		uint32_t ccr = (MAX_PWM * -dutyPercent) / 100;
+		htim1.Instance->CCR3 = MAX_PWM - ccr;
+		htim1.Instance->CCR4 = MAX_PWM;
+	} else {
+		coastRightMotor();
 	}
 }
 

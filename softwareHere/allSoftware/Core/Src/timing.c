@@ -5,8 +5,8 @@
  *      Author: inder
  */
 
-#define dtM 0.0001
-#define dtS 0.001
+#define dtM 0.005f
+#define dtS 0.020f
 
 float getDTM(void) {
 	return dtM;
